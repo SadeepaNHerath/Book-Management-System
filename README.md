@@ -1,5 +1,7 @@
 # 📚 Book Management System
 
+> A professional console-based library management application built with Dart, featuring comprehensive book tracking, status updates, and search functionalities. Perfect for small libraries or personal book collections.
+
 A simple console-based **Book Management System** implemented in **Dart**. This application allows users to manage a collection of books, including adding, removing, updating, and searching for books by title or author.
 
 ---

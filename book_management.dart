@@ -11,7 +11,7 @@ class Book {
   Book(this.title, this.author, this.isbn,
       {this.status = BookStatus.available}) {
     if (!isValidISBN(isbn)) {
-      throw new ArgumentError('Invalid ISBN format');
+      throw ArgumentError('Invalid ISBN format. ISBN must be 10 or 13 digits.');
     }
   }
 
@@ -26,7 +26,7 @@ class Book {
     if (isValidISBN(isbn)) {
       this.isbn = isbn;
     } else {
-      throw new ArgumentError('Invalid ISBN format');
+      throw ArgumentError('Invalid ISBN format. ISBN must be 10 or 13 digits.');
     }
   }
 
@@ -34,7 +34,9 @@ class Book {
   set setStatus(BookStatus status) => this.status = status;
 
   bool isValidISBN(String isbn) {
-    return (isbn.length == 10 || isbn.length == 13);
+    // Improved ISBN validation - checks if it's only digits and correct length
+    final RegExp isbnRegex = RegExp(r'^\d{10}$|^\d{13}$');
+    return isbnRegex.hasMatch(isbn);
   }
 
   void updateStatus(BookStatus newStatus) {
@@ -60,24 +62,47 @@ class BookManagementSystem {
   List<Book> books = [];
 
   void addBook(Book book) {
+    // Check for duplicate ISBN
+    if (books.any((existingBook) => existingBook.getIsbn == book.getIsbn)) {
+      throw ArgumentError('A book with ISBN ${book.getIsbn} already exists');
+    }
     books.add(book);
-    print('${book.getTitle} added to the library');
+    print('📚 "${book.getTitle}" added to the library');
   }
 
   void removeBook(String isbn) {
-    books.removeWhere((book) => book.getIsbn == isbn);
-    print('Book with ISBN $isbn removed from the library');
+    if (books.isEmpty) {
+      print('❌ The library is empty. No books to remove.');
+      return;
+    }
+
+    // Find the book first to get its details for the confirmation message
+    Book? bookToRemove;
+    for (var book in books) {
+      if (book.getIsbn == isbn) {
+        bookToRemove = book;
+        break;
+      }
+    }
+
+    if (bookToRemove != null) {
+      books.removeWhere((book) => book.getIsbn == isbn);
+      print(
+          '✅ Book "${bookToRemove.getTitle}" with ISBN $isbn has been removed from the library.');
+    } else {
+      print('❌ No book found with ISBN $isbn. Please check and try again.');
+    }
   }
 
   void updateBookStatus(String isbn, BookStatus newStatus) {
     for (Book book in books) {
       if (book.getIsbn == isbn) {
         book.updateStatus(newStatus);
-        print('Status of ${book.getTitle} updated to ${newStatus.name}');
+        print('✅ Status of "${book.getTitle}" updated to ${newStatus.name}');
         return;
       }
     }
-    print('No book found with ISBN $isbn');
+    print('❌ No book found with ISBN $isbn');
   }
 
   List<Book> getAvailableBooks() {
@@ -93,30 +118,37 @@ class BookManagementSystem {
   }
 
   List<Book> searchByTitle(String title) {
-    return books.where((book) => book.title.toLowerCase().contains(title.toLowerCase())).toList();
+    return books
+        .where((book) => book.title.toLowerCase().contains(title.toLowerCase()))
+        .toList();
   }
 
   List<Book> searchByAuthor(String author) {
-    return books.where((book) => book.author.toLowerCase().contains(author.toLowerCase())).toList();
+    return books
+        .where(
+            (book) => book.author.toLowerCase().contains(author.toLowerCase()))
+        .toList();
   }
 
   void displayBooks() {
     if (books.isEmpty) {
-      print('No books in the library');
+      print('📚 The library is empty');
       return;
     }
+    print('📚 Library contains ${books.length} book(s):');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     for (Book book in books) {
       displayBookDetails(book);
     }
   }
 
   void displayBookDetails(Book book) {
-    print('Title: ${book.title}');
-    print('Author: ${book.author}');
-    print('ISBN: ${book.isbn}');
+    print('📕 Title: ${book.title}');
+    print('✍️ Author: ${book.author}');
+    print('🔢 ISBN: ${book.isbn}');
     print(
-        'Status: ${book.status == BookStatus.available ? "Available" : "Borrowed"}');
-    print('-----------------------------');
+        '📋 Status: ${book.status == BookStatus.available ? "Available ✅" : "Borrowed 📤"}');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 }
 
@@ -128,8 +160,30 @@ void clearConsole() {
   print('╚═════════════════════════════════════╝\n');
 }
 
+String getNonEmptyInput(String prompt) {
+  String? input;
+  while (input == null || input.trim().isEmpty) {
+    stdout.write(prompt);
+    input = stdin.readLineSync()?.trim();
+    if (input == null || input.isEmpty) {
+      print('❌ This field cannot be empty. Please try again.');
+    }
+  }
+  return input;
+}
+
 void main() {
   BookManagementSystem library = BookManagementSystem();
+
+  // Add some sample books for demo purposes
+  try {
+    library
+        .addBook(Book('The Great Gatsby', 'F. Scott Fitzgerald', '1234567890'));
+    library.addBook(Book('To Kill a Mockingbird', 'Harper Lee', '9876543210'));
+    library.addBook(Book('1984', 'George Orwell', '1122334455'));
+  } catch (e) {
+    // Silently ignore exceptions during sample data setup
+  }
 
   while (true) {
     clearConsole();
@@ -147,7 +201,8 @@ void main() {
     try {
       choice = int.parse(input ?? '0');
     } catch (e) {
-      print('Invalid input. Please enter a number.');
+      print('❌ Invalid input. Please enter a number.');
+      waitForEnter();
       continue;
     }
 
@@ -155,26 +210,20 @@ void main() {
       case 1:
         while (true) {
           clearConsole();
-          print('--- Add Book ---');
-          stdout.write('Enter title: ');
-          String? title = stdin.readLineSync();
-          stdout.write('Enter author: ');
-          String? author = stdin.readLineSync();
-          stdout.write('Enter ISBN: ');
-          String? isbn = stdin.readLineSync();
+          print('━━━━━━━━━━━ 📕 Add Book 📕 ━━━━━━━━━━━');
 
-          if (title != null && author != null && isbn != null) {
-            try {
-              library.addBook(Book(title, author, isbn));
-              print('Book added successfully.');
-            } catch (e) {
-              print('Error adding book: $e');
-            }
-          } else {
-            print('Error: Title, author, and ISBN are required.');
+          String title = getNonEmptyInput('Enter title: ');
+          String author = getNonEmptyInput('Enter author: ');
+          String isbn = getNonEmptyInput('Enter ISBN (10 or 13 digits): ');
+
+          try {
+            library.addBook(Book(title, author, isbn));
+            print('✅ Book added successfully.');
+          } catch (e) {
+            print('❌ Error adding book: $e');
           }
 
-          stdout.write('Do you want to add another book? (yes/no): ');
+          stdout.write('\nDo you want to add another book? (yes/no): ');
           String? again = stdin.readLineSync();
           if (again?.toLowerCase() != 'yes') {
             break;
@@ -185,13 +234,12 @@ void main() {
       case 2:
         while (true) {
           clearConsole();
-          print('--- Remove Book ---');
-          stdout.write('Enter ISBN of the book to remove: ');
-          String? isbnToRemove = stdin.readLineSync();
-          library.removeBook(isbnToRemove!);
-          print('Book removed successfully.');
+          print('━━━━━━━━━━━ 🗑️ Remove Book 🗑️ ━━━━━━━━━━━');
+          String isbnToRemove =
+              getNonEmptyInput('Enter ISBN of the book to remove: ');
+          library.removeBook(isbnToRemove);
 
-          stdout.write('Do you want to remove another book? (yes/no): ');
+          stdout.write('\nDo you want to remove another book? (yes/no): ');
           String? again = stdin.readLineSync();
           if (again?.toLowerCase() != 'yes') {
             break;
@@ -202,18 +250,23 @@ void main() {
       case 3:
         while (true) {
           clearConsole();
-          print('--- Update Book Status ---');
-          stdout.write('Enter ISBN of the book to update status: ');
-          String isbnToUpdate = stdin.readLineSync()!;
-          stdout.write('Enter new status (available/borrowed): ');
-          String statusInput = stdin.readLineSync()!;
-          BookStatus newStatus = statusInput.toLowerCase() == 'available'
-              ? BookStatus.available
-              : BookStatus.borrowed;
-          library.updateBookStatus(isbnToUpdate, newStatus);
-          print('Status updated successfully.');
+          print('━━━━━━━━━━━ 🔄 Update Book Status 🔄 ━━━━━━━━━━━');
+          String isbnToUpdate =
+              getNonEmptyInput('Enter ISBN of the book to update status: ');
 
-          stdout.write('Do you want to update another book status? (yes/no): ');
+          print('\nSelect new status:');
+          print('1. Available');
+          print('2. Borrowed');
+          stdout.write('Enter choice (1 or 2): ');
+
+          String statusChoice = stdin.readLineSync() ?? '1';
+          BookStatus newStatus =
+              statusChoice == '2' ? BookStatus.borrowed : BookStatus.available;
+
+          library.updateBookStatus(isbnToUpdate, newStatus);
+
+          stdout
+              .write('\nDo you want to update another book status? (yes/no): ');
           String? again = stdin.readLineSync();
           if (again?.toLowerCase() != 'yes') {
             break;
@@ -223,51 +276,80 @@ void main() {
 
       case 4:
         clearConsole();
-        stdout.write('Enter title to search: ');
-        String titleToSearch = stdin.readLineSync()!;
-        List<Book> searchResultsByTitle = library.searchByTitle(titleToSearch);
-        print('Search Results by Title:');
-        if (searchResultsByTitle.isEmpty) {
-          print('No books found with the title "$titleToSearch".');
-        } else {
-          for (Book book in searchResultsByTitle) {
-            library.displayBookDetails(book);
+        print('━━━━━━━━━━━ 🔍 Search by Title 🔍 ━━━━━━━━━━━');
+        try {
+          String titleToSearch = getNonEmptyInput('Enter title to search: ');
+          List<Book> searchResultsByTitle =
+              library.searchByTitle(titleToSearch);
+          print('\n📋 Search Results by Title:');
+          if (searchResultsByTitle.isEmpty) {
+            print('❌ No books found with the title "$titleToSearch".');
+          } else {
+            print(
+                'Found ${searchResultsByTitle.length} book(s) matching "$titleToSearch":');
+            print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            for (Book book in searchResultsByTitle) {
+              library.displayBookDetails(book);
+            }
           }
+        } catch (e) {
+          print('❌ An error occurred during search: $e');
         }
-        stdout.write('Press Enter to continue...');
-        stdin.readLineSync();
+        waitForEnter();
         break;
 
       case 5:
         clearConsole();
-        stdout.write('Enter author to search: ');
-        String authorToSearch = stdin.readLineSync()!;
-        List<Book> searchResultsByAuthor = library.searchByAuthor(authorToSearch);
-        print('Search Results by Author:');
-        if (searchResultsByAuthor.isEmpty) {
-          print('No books found by the author "$authorToSearch".');
-        } else {
-          for (Book book in searchResultsByAuthor) {
-            library.displayBookDetails(book);
+        print('━━━━━━━━━━━ 🔍 Search by Author 🔍 ━━━━━━━━━━━');
+        try {
+          String authorToSearch = getNonEmptyInput('Enter author to search: ');
+          List<Book> searchResultsByAuthor =
+              library.searchByAuthor(authorToSearch);
+          print('\n📋 Search Results by Author:');
+          if (searchResultsByAuthor.isEmpty) {
+            print('❌ No books found by the author "$authorToSearch".');
+          } else {
+            print(
+                'Found ${searchResultsByAuthor.length} book(s) by "$authorToSearch":');
+            print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            for (Book book in searchResultsByAuthor) {
+              library.displayBookDetails(book);
+            }
           }
+        } catch (e) {
+          print('❌ An error occurred during search: $e');
         }
-        stdout.write('Press Enter to continue...');
-        stdin.readLineSync();
+        waitForEnter();
         break;
 
       case 6:
         clearConsole();
+        print('━━━━━━━━━━━ 📚 All Books 📚 ━━━━━━━━━━━');
         library.displayBooks();
-        stdout.write('Press Enter to continue...');
-        stdin.readLineSync();
+        waitForEnter();
         break;
 
       case 7:
-        print('Exiting the program.');
+        clearConsole();
+        print('Thank you for using the Book Management System.');
+        print('Exiting the program. Goodbye! 👋');
         return;
 
       default:
-        print('Invalid option. Please try again.');
+        print('❌ Invalid option. Please try again.');
+        waitForEnter();
     }
+  }
+}
+
+// Helper function to wait for user to press Enter
+void waitForEnter() {
+  try {
+    stdout.write('Press Enter to continue...');
+    stdin.readLineSync();
+  } catch (e) {
+    // Handle potential stdin errors
+    print('\nContinuing...');
+    sleep(Duration(seconds: 1));
   }
 }
