@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      release-name:
+        description: 'Release name (required for manual triggers)'
+        required: true
+        default: 'Manual Release'
 
 jobs:
   build:
@@ -73,10 +78,28 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    # Run on tags or manual workflow dispatch with a parameter
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     
     steps:
+      - name: Checkout code for tagging
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Create tag for manual workflow
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Generate a tag based on date and workflow run
+          TAG="v-manual-$(date +'%Y%m%d')-${{ github.run_number }}"
+          echo "Generated tag: $TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG
+          git push origin $TAG
+          # Save the tag name to use later
+          echo "RELEASE_TAG=$TAG" >> $GITHUB_ENV
+        shell: bash
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -90,9 +113,8 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release ${{ github.ref_name || format('Manual-{0}', github.run_number) }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ github.ref_name || env.RELEASE_TAG }}
+          name: ${{ github.event.inputs.release-name || github.ref_name || env.RELEASE_TAG }}
           files: |
             artifacts/book-manager-linux/*.zip
             artifacts/book-manager-windows/*.zip
