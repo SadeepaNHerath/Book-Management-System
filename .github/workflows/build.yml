@@ -73,22 +73,29 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    # Run on tags or manual workflow dispatch with a parameter
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Display structure of downloaded artifacts
+        run: ls -R artifacts
+        shell: bash
         
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name || format('Manual-{0}', github.run_number) }}
           draft: false
           prerelease: false
           files: |
-            book-manager-linux/*.zip
-            book-manager-windows/*.zip
-            book-manager-macos/*.zip
+            artifacts/book-manager-linux/*.zip
+            artifacts/book-manager-windows/*.zip
+            artifacts/book-manager-macos/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
