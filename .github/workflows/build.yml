@@ -3,8 +3,8 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tags (v1.0.0, v1.1.0, etc.)
-  workflow_dispatch:  # Allow manual triggering from GitHub UI
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -26,10 +26,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Dart SDK
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@v1.6.0
         with:
           sdk: stable
 
@@ -53,13 +53,13 @@ jobs:
         shell: bash
 
       - name: Zip artifacts
-        uses: vimtor/action-zip@v1
+        uses: vimtor/action-zip@v1.1
         with:
           files: ${{ matrix.output_name }} DIST_README.md
           dest: ${{ matrix.asset_name }}.zip
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
           path: ${{ matrix.asset_name }}.zip
@@ -69,11 +69,11 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')  # Only run on tags
+    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: Create Release
         id: create_release
