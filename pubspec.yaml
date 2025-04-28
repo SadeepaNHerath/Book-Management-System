@@ -1,0 +1,14 @@
+name: book_management_system
+description: A professional console-based library management application built with Dart, featuring comprehensive book tracking, status updates, and search functionalities.
+version: 1.0.0
+repository: https://github.com/yourusername/Book-Management-System
+
+environment:
+  sdk: '>=2.19.0 <4.0.0'
+
+# No external dependencies for now, using core Dart libraries
+dependencies: {}
+
+dev_dependencies:
+  lints: ^2.1.0
+  test: ^1.24.0

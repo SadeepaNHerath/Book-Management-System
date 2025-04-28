@@ -34,7 +34,11 @@ jobs:
           sdk: stable
 
       - name: Install dependencies
-        run: dart pub get
+        run: |
+          # Ensure we're in the right directory
+          ls -la
+          dart pub get
+        shell: bash
 
       - name: Compile executable
         run: dart compile exe book_management.dart -o ${{ matrix.output_name }}

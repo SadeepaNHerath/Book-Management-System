@@ -1,0 +1,51 @@
+# Dart and Flutter specific ignores
+.dart_tool/
+.packages
+.pub/
+build/
+pubspec.lock
+*.dart.js
+*.js.deps
+*.js.map
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Compiled executables
+book_manager
+book_manager.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE and editor files
+.idea/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+*.iml
+.project
+.classpath
+.settings/
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# Coverage reports
+coverage/
+*.lcov
+.test_coverage.dart
+
+# Generated files
+.dart_tool/
